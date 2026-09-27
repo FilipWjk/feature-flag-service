@@ -1,0 +1,22 @@
+@baseUrl = http://localhost:5095
+
+### Partial rollout: known enabled user
+GET {{baseUrl}}/api/features/NewDashboard/enabled?userId=102
+
+### Partial rollout: known disabled user
+GET {{baseUrl}}/api/features/NewDashboard/enabled?userId=123
+
+### Full rollout
+GET {{baseUrl}}/api/features/DarkMode/enabled?userId=123
+
+### Globally disabled feature
+GET {{baseUrl}}/api/features/LegacyExport/enabled?userId=123
+
+### Case-insensitive feature lookup
+GET {{baseUrl}}/api/features/darkmode/enabled?userId=123
+
+### Unknown feature: 404 Problem Details
+GET {{baseUrl}}/api/features/Unknown/enabled?userId=123
+
+### Missing userId: 400 Validation Problem Details
+GET {{baseUrl}}/api/features/NewDashboard/enabled

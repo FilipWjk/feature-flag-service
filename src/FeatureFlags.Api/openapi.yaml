@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Feature Flag Service API
+  version: 1.0.0
+  description: |
+    Determines whether a feature is enabled for a specific user.
+
+    **Evaluation rules**
+    1. Unknown feature → `404 Not Found`.
+    2. `enabled = false` → disabled for all users.
+    3. `enabled = true` and `rolloutPercentage = 100` → enabled for all users.
+    4. `enabled = true` and `rolloutPercentage < 100` → enabled only for a subset of users
+       (about `rolloutPercentage` % of them; `0` means nobody).
+    5. Evaluation is deterministic: the same feature, user and flag configuration
+       always produce the same result, across requests and restarts.
+
+    This document is the API contract (source of truth). Response models in the
+    service are generated from it at build time.
+servers:
+  - url: http://localhost:5095
+    description: Local development
+# No authentication: out of scope for this service (see docs/open-questions.md Q-09).
+security: []
+tags:
+  - name: Features
+    description: Feature flag evaluation
+paths:
+  /api/features/{featureName}/enabled:
+    get:
+      tags:
+        - Features
+      operationId: IsFeatureEnabled
+      summary: Check whether a feature is enabled for a user
+      description: |
+        Evaluates the feature flag `featureName` for the user `userId` according to the
+        evaluation rules above. Membership in a partial rollout is derived from a stable
+        hash of feature name and user ID, so a user keeps the same result and raising the
+        rollout percentage never disables users who were already enabled.
+      parameters:
+        - name: featureName
+          in: path
+          required: true
+          description: Name of the feature flag. Case-insensitive.
+          schema:
+            type: string
+            minLength: 1
+          example: NewDashboard
+        - name: userId
+          in: query
+          required: true
+          description: Identifier of the user the feature is evaluated for. Must not be empty or whitespace.
+          schema:
+            type: string
+            minLength: 1
+          example: "123"
+      responses:
+        "200":
+          description: The feature was evaluated for the user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureEnabledResponse"
+              examples:
+                enabled:
+                  summary: Feature enabled for this user
+                  value:
+                    enabled: true
+                disabled:
+                  summary: Feature disabled for this user
+                  value:
+                    enabled: false
+        "400":
+          description: The `userId` query parameter is missing, empty or whitespace.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ValidationProblemDetails"
+              example:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: One or more validation errors occurred.
+                status: 400
+                errors:
+                  userId:
+                    - The userId query parameter is required and must not be empty.
+        "404":
+          description: No feature flag with this name exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+              example:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.5
+                title: Not Found
+                status: 404
+                detail: Feature 'Unknown' does not exist.
+components:
+  schemas:
+    FeatureEnabledResponse:
+      type: object
+      description: Result of evaluating a feature flag for one user.
+      required:
+        - enabled
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+          description: "`true` if the feature is enabled for the user, otherwise `false`."
+    ProblemDetails:
+      type: object
+      description: Error details.
+      properties:
+        type:
+          type: string
+          nullable: true
+          description: URI reference identifying the problem type.
+        title:
+          type: string
+          nullable: true
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          format: int32
+          nullable: true
+          description: HTTP status code.
+        detail:
+          type: string
+          nullable: true
+          description: Human-readable explanation specific to this occurrence.
+        instance:
+          type: string
+          nullable: true
+          description: URI reference identifying this occurrence.
+    ValidationProblemDetails:
+      description: Problem Details with field-level validation errors.
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetails"
+        - type: object
+          properties:
+            errors:
+              type: object
+              description: Validation messages per request field.
+              additionalProperties:
+                type: array
+                items:
+                  type: string

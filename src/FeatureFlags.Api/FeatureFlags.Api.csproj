@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OpenApiContract>openapi.yaml</OpenApiContract>
+    <!-- Generated from the OpenAPI contract and intentionally excluded from source control. -->
+    <GeneratedApiModels>Contracts/Generated/ApiModels.g.cs</GeneratedApiModels>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSwag.MSBuild" Version="14.7.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FeatureFlags.Core\FeatureFlags.Core.csproj" />
+    <!-- The SDK's default glob may see an existing generated file; include it exactly once below. -->
+    <Compile Remove="$(GeneratedApiModels)" />
+    <UpToDateCheckInput Include="$(OpenApiContract)" />
+  </ItemGroup>
+
+  <!-- Regenerate response models whenever openapi.yaml changes, before compilation. -->
+  <Target Name="GenerateApiModels" Inputs="$(OpenApiContract)" Outputs="$(GeneratedApiModels)">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="$(NSwagExe_Net100) openapi2csclient /input:$(OpenApiContract) /output:$(GeneratedApiModels) /namespace:FeatureFlags.Api.Contracts /generateClientClasses:false /generateClientInterfaces:false /generateExceptionClasses:false /jsonLibrary:SystemTextJson /classStyle:Record /generateNativeRecords:true /excludedTypeNames:ProblemDetails,ValidationProblemDetails" />
+  </Target>
+
+  <!-- Generated files are compiled without needing to be checked into the repository. -->
+  <Target Name="IncludeGeneratedApiModels" BeforeTargets="CoreCompile" DependsOnTargets="GenerateApiModels">
+    <ItemGroup>
+      <Compile Include="$(GeneratedApiModels)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
