@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Feature Flag Service: Layered Architecture",
+    "quality_profile": "showcase",
+    "viewBox": [1280, 760],
+    "views": [
+      {
+        "id": "request",
+        "label": "Evaluate request",
+        "focus": ["consumer", "controller", "service", "repository", "bucketer"],
+        "note": "Follows one request from the user ID to its stable decision."
+      },
+      {
+        "id": "startup",
+        "label": "Load configuration",
+        "focus": ["configuration", "repository", "controller"],
+        "note": "Flags are validated at startup and remain immutable afterwards."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "consumer",
+      "type": "external",
+      "label": "Calling system",
+      "sublabel": "provides featureName + userId",
+      "pos": [40, 326],
+      "size": [170, 72]
+    },
+    {
+      "id": "controller",
+      "type": "backend",
+      "label": "FeatureFlagsController",
+      "sublabel": "GET /api/features/{name}/enabled",
+      "tag": "Controller layer: HTTP + Problem Details",
+      "pos": [290, 326],
+      "size": [205, 72]
+    },
+    {
+      "id": "service",
+      "type": "backend",
+      "label": "FeatureFlagService",
+      "sublabel": "feature evaluation rules",
+      "tag": "Service layer: FeatureFlags.Core",
+      "pos": [595, 326],
+      "size": [190, 72]
+    },
+    {
+      "id": "repository",
+      "type": "backend",
+      "label": "InMemoryFeatureFlagRepository",
+      "sublabel": "FrozenDictionary, read-only",
+      "tag": "Repository layer: FeatureFlags.Api",
+      "pos": [890, 326],
+      "size": [205, 72]
+    },
+    {
+      "id": "configuration",
+      "type": "external",
+      "label": "appsettings.json",
+      "sublabel": "FeatureFlags: Name, Enabled, Rollout",
+      "pos": [890, 110],
+      "size": [205, 72]
+    },
+    {
+      "id": "bucketer",
+      "type": "backend",
+      "label": "RolloutBucketer",
+      "sublabel": "SHA-256(feature:userId) mod 100",
+      "tag": "stabiler Bucket 0..99",
+      "pos": [595, 540],
+      "size": [190, 72]
+    },
+    {
+      "id": "contract",
+      "type": "external",
+      "label": "OpenAPI + Swagger",
+      "sublabel": "Development: contract and UI",
+      "pos": [290, 110],
+      "size": [205, 72]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Feature Flag Service",
+      "wraps": ["controller", "service", "repository", "bucketer", "configuration", "contract"],
+      "pad": 34
+    }
+  ],
+  "connections": [
+    {
+      "id": "request",
+      "from": "consumer",
+      "to": "controller",
+      "label": "HTTP GET: featureName + userId",
+      "variant": "emphasis",
+      "labelAt": [250, 280]
+    },
+    {
+      "id": "evaluate",
+      "from": "controller",
+      "to": "service",
+      "label": "validated request"
+    },
+    {
+      "id": "lookup",
+      "from": "service",
+      "to": "repository",
+      "label": "find feature flag by name",
+      "labelAt": [838, 280]
+    },
+    {
+      "id": "bucket",
+      "from": "service",
+      "to": "bucketer",
+      "label": "only for a partial rollout",
+      "labelAt": [690, 450]
+    },
+    {
+      "id": "load",
+      "from": "configuration",
+      "to": "repository",
+      "label": "validate and load at startup",
+      "labelAt": [993, 220]
+    },
+    {
+      "id": "docs",
+      "from": "contract",
+      "to": "controller",
+      "label": "contract + Swagger UI",
+      "variant": "dashed",
+      "labelAt": [393, 220]
+    },
+    {
+      "id": "response",
+      "from": "controller",
+      "to": "consumer",
+      "label": "{ enabled: true | false }",
+      "variant": "emphasis",
+      "labelAt": [250, 440]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "HTTP behavior",
+      "items": [
+        "Blank userId: 400 ValidationProblemDetails",
+        "Unknown feature: 404 ProblemDetails",
+        "Known feature: 200 with enabled"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Rollout invariant",
+      "items": [
+        "Enabled=false disables the feature for every user",
+        "100 percent enables the feature for every user",
+        "Bucket < RolloutPercentage enables the feature"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Why no user storage?",
+      "items": [
+        "The same input always produces the same bucket",
+        "No state per user is required",
+        "A rollout increase enables only additional buckets"
+      ]
+    }
+  ]
+}
