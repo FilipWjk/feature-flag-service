@@ -149,6 +149,11 @@ adds buckets `20..49`; it does not reshuffle the existing assignments.
 source of truth for the response shape. It is also served at
 `/openapi/v1.yaml` in Development and displayed by Swagger UI at `/swagger`.
 
+An OpenAPI contract was not part of the original requirements. I included it
+because I know OpenAPI as a standard, machine-readable way to describe HTTP
+interfaces. It makes the API easier to inspect, test, and integrate with other
+tools.
+
 During `dotnet build`, `NSwag.MSBuild` generates
 `Contracts/Generated/ApiModels.g.cs` from `openapi.yaml`. The generated file is
 compiled before the API build but is ignored by Git because it can be recreated

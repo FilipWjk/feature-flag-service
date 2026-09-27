@@ -74,13 +74,24 @@ Expected result: all tests pass.
 dotnet run --project src/FeatureFlags.Api
 ```
 
-The API listens on `http://localhost:5095`.
+With the default Development launch profile, the Swagger UI opens automatically
+in your browser at startup. The API continues running in the terminal in the
+background, so Swagger can send requests to the running service. Keep the
+terminal open while testing; press `Ctrl+C` to stop the API.
+
+If the browser does not open automatically, navigate to:
 
 - Swagger UI: http://localhost:5095/swagger
 - OpenAPI contract: http://localhost:5095/openapi/v1.yaml
 - Contract source: [src/FeatureFlags.Api/openapi.yaml](src/FeatureFlags.Api/openapi.yaml)
 
 Swagger UI and the contract endpoint are available only in Development.
+
+You can test the API manually either through Swagger UI or by opening
+[FeatureFlags.Api.http](src/FeatureFlags.Api/FeatureFlags.Api.http) in VS Code
+with a REST Client extension. The `.http` file contains requests for full and
+partial rollouts, case-insensitive lookup, validation errors, and unknown
+features.
 
 ## Test
 

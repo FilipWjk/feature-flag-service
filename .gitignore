@@ -8,5 +8,3 @@
 # Generated from the OpenAPI contract during build
 /src/FeatureFlags.Api/Contracts/Generated/
 
-# Local-only explanation
-/docs/concepts/feature-flag-rollout.md
